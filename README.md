@@ -4,7 +4,7 @@ Right after I memorized all French departments with less than or equal to thirte
 
 That did leave me with a question , is it possible to create a crossword puzzle with only French departments? After some fiddling with pen and paper, turns out that the answer is yes.
 
-![Every question for this puzzle is French Department. The Answers can be found in another image in this repository if you want them.](HandMadePuzzleNoAnswers.PNG)
+![Every question for this puzzle is French Department. The Answers can be found in another image in this repository if you want them.](HandmadePuzzleNoAnswers.PNG)
 
 While I'm quite fond of it, compared to the crossword puzzles I know, it has fewer questions and there are more empty squares than I would like.
 That is why this project exists, to find a crossword puzzle that is more dense and has more questions than the one I made by hand.
@@ -15,21 +15,26 @@ You can generate a crossword puzzle by using the following command in the direct
 
 `python generate_crossword.py [Width] [Height] [path/to/file.txt] [nr_of_tries]`
 
+For example, you could use the following command:
+
 `python generate_crossword.py 13 13 dictionary.txt 10`
 
+The script then prints the densest puzzle, as well as the puzzle with the most questions that it found within the amount of tries specified.
 
-The animation shows how this script builds a puzzle.
+## Behind the Scenes
+First the script chooses a random square, and puts that square in a set.
+Next we start the main loop:
+
+
+1. Pick a random square from the set (initially just the random one).
+2. Find a list of words that could fit in that square using the data structure described below.
+3. Randomly pick a word from that list and add it to the puzzle.
+4. Record which squares the new word uses and add the squares to the set.
+5. If no words fit, then remove the square (from step 1) from the set.
+
+Then we repeat the loop until no more squares are in the set.
 
 ![gif 1](basic_algorithm.gif)
-
-First it chooses a random square, and puts it in a set.
-Next we start the main loop:
-It picks a random square from the set (initially just the random one).
-Then it looks for words that could fit in that square using the data structure described below.
-We pick a word randomly from that list and add it to the puzzle.
-It also records which squares the new word uses and we add the squares to the set.
-If no words fit, then the square is removed from the set.
-Then we repeat the loop until no more squares are in the set.
 
 In the example, after the first word LOT is added, the square with the O is selected to add a word.
 The department 'MAYOTTE' does not fit in the puzzle, as the M falls outside of the puzzle area, but 'LOIRET' does.
@@ -41,21 +46,25 @@ We repeat this process as often as specified and return both the densest puzzle,
 
 ## Data Structure
 
-To me it seemed that looking for possible words that fit from a linear list, would not be the most efficient way of doing it.
-Instead I took inspiration from [This paper](https://dl.acm.org/doi/10.1145/42411.42420) about storing words for a scrabble computer.
-Appel and Jacobson store words in a tree like structure they call a Trie, where every letter of the word corresponds to an edge in the Trie.
-In this script I store the letters in the node instead.
-Additionally, I wanted to be able to look for a word starting from any letter in that word.
-For example, to find words that fit on the 'O' from lot, we don't have to look for every word that has an 'O' in it.
-Instead we look in the 'O' tree, find the letters after the 'O' and afterwards the letters before the 'O'.
-In the data structure, this turning point is marked with the ',' character.
+I took inspiration from [This paper](https://dl.acm.org/doi/10.1145/42411.42420) about storing words for a scrabble computer.
+Appel and Jacobson store words in a tree like structure they call a Trie, where every letter of the word corresponds to an edge in the Trie, and the node specifies if a word can end.
+You can then travel down the tree to find words that could be valid plays.
 
+
+The Node in this script both stores the letter and whether the word can end at that letter.
+However, I wanted to be able to look for a word starting from any letter in that word.
+That is, to find words that fit on the 'O' from 'LOT', we don't have to look for every word that has an 'O' in it,
+but instead look in the 'O' tree, find the letters after the 'O' and afterwards the letters before the 'O'.
+
+
+For this functionality I use a designated character (just a comma ','), that signifies that the end of the word is reached, but that there are still letters on the front if the word.
+The animation below shows how 'MAYOTTE' is written from the data structure to the puzzle. First OTTE is found from left to right.
+Then, after the turning character, we write 'YAM', right to left.
 
 ![gif 2](scrabble_method.gif)
 
 
-This animation shows how 'MAYOTTE' is written from the data structure to the puzzle. First OTTE is found from left to right.
-Then, after the turning character, we write 'YAM', right to left.
-
-
-This does mean that a single word exists multiple times in the data structure (especially longer words), but with only 87 entries in the French department dictionary it wasn't an issue and it made looking for words a lot easier.
+This made looking for words that fit a certain square much easier.
+However, this does mean that a single word exists multiple times in the data structure (especially longer words).
+For example, adding 'APPLE' to the tree means adding 'APPLE', 'APPL,E', 'APP,LE', 'AP,PLE' and 'A,PPLE'.
+But with only 87 entries in my French department dictionary it wasn't an issue.
